@@ -1,0 +1,9 @@
+backend/target/
+backend/src/main/resources/application-local.yml
+frontend/dist/
+frontend/node_modules/
+
+*.log
+*.tsbuildinfo
+.DS_Store
+Thumbs.db
