@@ -5,3 +5,7 @@ import type { LoginRequest, LoginResponse } from '../types/auth'
 export function loginApi(data: LoginRequest) {
   return http.post<ApiResponse<LoginResponse>>('/auth/login', data)
 }
+
+export function logoutApi() {
+  return http.post<ApiResponse<void>>('/auth/logout')
+}

@@ -41,6 +41,7 @@ public class AuthService {
     private final SysRoleMenuMapper sysRoleMenuMapper;
     private final PasswordHasher passwordHasher;
     private final JwtTokenProvider jwtTokenProvider;
+    private final TokenService tokenService;
 
     public AuthService(
             SysUserMapper sysUserMapper,
@@ -49,7 +50,8 @@ public class AuthService {
             SysUserRoleMapper sysUserRoleMapper,
             SysRoleMenuMapper sysRoleMenuMapper,
             PasswordHasher passwordHasher,
-            JwtTokenProvider jwtTokenProvider
+            JwtTokenProvider jwtTokenProvider,
+            TokenService tokenService
     ) {
         this.sysUserMapper = sysUserMapper;
         this.sysRoleMapper = sysRoleMapper;
@@ -58,6 +60,7 @@ public class AuthService {
         this.sysRoleMenuMapper = sysRoleMenuMapper;
         this.passwordHasher = passwordHasher;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.tokenService = tokenService;
     }
 
     public LoginResponse login(LoginRequest request) {
@@ -74,9 +77,11 @@ public class AuthService {
         }
 
         RbacPayload rbacPayload = loadRbacPayload(user.getId());
+        String token = jwtTokenProvider.createToken(user);
+        tokenService.saveToken(token, user.getId(), jwtTokenProvider.getExpirationSeconds());
 
         return new LoginResponse(
-                jwtTokenProvider.createToken(user),
+                token,
                 "Bearer",
                 jwtTokenProvider.getExpirationSeconds(),
                 new UserInfo(user.getId(), user.getUsername(), user.getNickname()),
@@ -84,6 +89,12 @@ public class AuthService {
                 rbacPayload.permissions(),
                 rbacPayload.menus()
         );
+    }
+
+    public void logout(String authorization) {
+        if (authorization != null && authorization.startsWith("Bearer ")) {
+            tokenService.deleteToken(authorization.substring(7));
+        }
     }
 
     private RbacPayload loadRbacPayload(Long userId) {

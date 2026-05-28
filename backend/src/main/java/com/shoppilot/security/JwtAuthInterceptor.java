@@ -2,6 +2,7 @@ package com.shoppilot.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shoppilot.common.ApiResponse;
+import com.shoppilot.service.TokenService;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -15,10 +16,12 @@ import java.nio.charset.StandardCharsets;
 public class JwtAuthInterceptor implements HandlerInterceptor {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final TokenService tokenService;
     private final ObjectMapper objectMapper;
 
-    public JwtAuthInterceptor(JwtTokenProvider jwtTokenProvider, ObjectMapper objectMapper) {
+    public JwtAuthInterceptor(JwtTokenProvider jwtTokenProvider, TokenService tokenService, ObjectMapper objectMapper) {
         this.jwtTokenProvider = jwtTokenProvider;
+        this.tokenService = tokenService;
         this.objectMapper = objectMapper;
     }
 
@@ -30,8 +33,14 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
             return false;
         }
 
+        String token = authorization.substring(7);
+        if (!tokenService.isTokenValid(token)) {
+            writeUnauthorized(response);
+            return false;
+        }
+
         try {
-            Claims claims = jwtTokenProvider.parseToken(authorization.substring(7));
+            Claims claims = jwtTokenProvider.parseToken(token);
             LoginUserContext.set(new LoginUserContext.LoginUser(
                     Long.valueOf(claims.getSubject()),
                     claims.get("username", String.class),

@@ -16,6 +16,16 @@ export interface Product {
   updatedAt: string
 }
 
+export interface HotProduct {
+  id: number
+  name: string
+  categoryName: string
+  price: number
+  stock: number
+  status: number
+  score: number
+}
+
 export interface ProductQuery {
   page: number
   size: number

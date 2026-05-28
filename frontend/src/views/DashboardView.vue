@@ -5,13 +5,17 @@ import { Box, Connection, House, Refresh, Tickets } from '@element-plus/icons-vu
 import { ElMessage } from 'element-plus'
 
 import { getHealth } from '../api/health'
+import { getHotProducts } from '../api/product'
 import { useAuthStore } from '../stores/auth'
 import type { HealthResponse } from '../types/health'
+import type { HotProduct } from '../types/product'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const loading = ref(false)
+const hotLoading = ref(false)
 const health = ref<HealthResponse | null>(null)
+const hotProducts = ref<HotProduct[]>([])
 const errorMessage = ref('')
 
 const iconMap = {
@@ -41,7 +45,22 @@ async function loadHealth() {
   }
 }
 
-onMounted(loadHealth)
+async function loadHotProducts() {
+  if (!authStore.hasPermission('product:view')) {
+    return
+  }
+  hotLoading.value = true
+  try {
+    const { data } = await getHotProducts(5)
+    hotProducts.value = data.data
+  } finally {
+    hotLoading.value = false
+  }
+}
+
+onMounted(async () => {
+  await Promise.all([loadHealth(), loadHotProducts()])
+})
 </script>
 
 <template>
@@ -79,6 +98,27 @@ onMounted(loadHealth)
           <small>{{ menu.permission === 'product:view' ? '维护商品目录、库存、价格和上下架状态。' : '查看订单、核对明细，并按规则流转订单状态。' }}</small>
         </span>
       </button>
+    </section>
+
+    <section v-if="authStore.hasPermission('product:view')" class="detail-panel hot-panel">
+      <div class="topbar compact">
+        <div>
+          <p class="eyebrow">Redis 缓存</p>
+          <h2>热门商品排行榜</h2>
+        </div>
+        <el-button :icon="Refresh" :loading="hotLoading" @click="loadHotProducts">刷新榜单</el-button>
+      </div>
+      <el-table v-loading="hotLoading" :data="hotProducts" border>
+        <el-table-column type="index" label="排名" width="80" />
+        <el-table-column prop="name" label="商品名称" min-width="160" />
+        <el-table-column prop="categoryName" label="分类" width="120" />
+        <el-table-column prop="price" label="价格" width="120">
+          <template #default="{ row }">¥{{ Number(row.price).toFixed(2) }}</template>
+        </el-table-column>
+        <el-table-column prop="score" label="热度" width="100">
+          <template #default="{ row }">{{ Number(row.score).toFixed(0) }}</template>
+        </el-table-column>
+      </el-table>
     </section>
   </section>
 </template>

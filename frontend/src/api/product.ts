@@ -1,6 +1,6 @@
 import { http } from './http'
 import type { ApiResponse } from '../types/api'
-import type { CategoryOption, PageResult, Product, ProductForm, ProductQuery } from '../types/product'
+import type { CategoryOption, HotProduct, PageResult, Product, ProductForm, ProductQuery } from '../types/product'
 
 export function getCategoryOptions() {
   return http.get<ApiResponse<CategoryOption[]>>('/categories/options')
@@ -8,6 +8,10 @@ export function getCategoryOptions() {
 
 export function getProducts(params: ProductQuery) {
   return http.get<ApiResponse<PageResult<Product>>>('/products', { params })
+}
+
+export function getHotProducts(limit = 10) {
+  return http.get<ApiResponse<HotProduct[]>>('/products/hot', { params: { limit } })
 }
 
 export function createProduct(data: ProductForm) {

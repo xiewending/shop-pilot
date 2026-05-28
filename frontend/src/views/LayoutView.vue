@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { Box, House, Menu as MenuIcon, SwitchButton, Tickets } from '@element-plus/icons-vue'
 
+import { logoutApi } from '../api/auth'
 import { useAuthStore } from '../stores/auth'
 
 const route = useRoute()
@@ -19,9 +20,13 @@ function resolveIcon(icon?: string) {
   return icon ? iconMap[icon as keyof typeof iconMap] ?? MenuIcon : MenuIcon
 }
 
-function handleLogout() {
-  authStore.logout()
-  window.location.href = '/login'
+async function handleLogout() {
+  try {
+    await logoutApi()
+  } finally {
+    authStore.logout()
+    window.location.href = '/login'
+  }
 }
 </script>
 

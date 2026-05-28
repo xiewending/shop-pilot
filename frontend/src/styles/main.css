@@ -112,6 +112,10 @@ button {
   margin-bottom: 24px;
 }
 
+.topbar.compact {
+  margin-bottom: 16px;
+}
+
 .eyebrow {
   margin: 0 0 8px;
   color: #64748b;
@@ -298,6 +302,10 @@ h1 {
 .detail-panel h2 {
   margin-bottom: 16px;
   font-size: 18px;
+}
+
+.hot-panel {
+  margin-top: 20px;
 }
 
 .login-page {

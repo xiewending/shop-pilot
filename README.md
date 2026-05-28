@@ -1,6 +1,6 @@
 # ShopPilot
 
-ShopPilot 是一个基于 Java + Spring Boot + Vue 3 的电商运营后台展示项目。当前已完成项目骨架、登录权限、商品管理、订单管理和 RBAC 权限菜单模块。
+ShopPilot 是一个基于 Java + Spring Boot + Vue 3 的电商运营后台展示项目。当前已完成项目骨架、登录权限、RBAC 菜单权限、商品管理、订单管理和 Redis 缓存模块。
 
 当前项目目录：
 
@@ -18,6 +18,8 @@ F:\Project_by_codex\shop-pilot
 - MySQL 8
 - MyBatis-Plus 3.5.9
 - Redis
+- Spring Cache
+- RedisTemplate
 - JWT
 - Lombok
 - Spring Validation
@@ -36,8 +38,6 @@ F:\Project_by_codex\shop-pilot
 
 ```text
 shop-pilot/
-|-- .git/
-|-- .github/
 |-- backend/
 |   |-- pom.xml
 |   `-- src/
@@ -65,6 +65,43 @@ shop-pilot/
 - MySQL 8
 - Redis
 
+## Redis 安装和启动
+
+推荐方式一：Docker 启动 Redis
+
+```bash
+docker run --name shop-pilot-redis -p 6379:6379 -d redis:7
+```
+
+停止 Redis：
+
+```bash
+docker stop shop-pilot-redis
+```
+
+再次启动：
+
+```bash
+docker start shop-pilot-redis
+```
+
+推荐方式二：Windows 使用 WSL 安装 Redis
+
+```bash
+sudo apt update
+sudo apt install redis-server
+sudo service redis-server start
+redis-cli ping
+```
+
+如果返回：
+
+```text
+PONG
+```
+
+说明 Redis 已启动。
+
 ## 后端配置
 
 后端配置文件：
@@ -79,7 +116,7 @@ backend/src/main/resources/application.yml
 http://localhost:8080
 ```
 
-默认数据库连接：
+默认数据库和 Redis 配置：
 
 ```yaml
 spring:
@@ -148,12 +185,43 @@ http://localhost:5173
 
 开发环境下，Vite 会把 `/api` 请求代理到 `http://localhost:8080`。
 
+## Redis 缓存设计
+
+已启用 Spring Cache：
+
+```text
+backend/src/main/java/com/shoppilot/config/RedisCacheConfig.java
+```
+
+缓存内容：
+
+```text
+product:detail      商品详情缓存，过期时间 15 分钟
+product:hot:list    热门商品列表缓存，过期时间 60 秒
+product:hot:rank    热门商品访问排行榜，Redis ZSet，过期时间 7 天
+login:token:*       登录 token，过期时间与 JWT 一致，默认 7200 秒
+```
+
+缓存删除逻辑：
+
+- 新增商品：清理热门商品列表缓存。
+- 编辑商品：删除对应商品详情缓存，清理热门商品列表缓存。
+- 商品上下架：删除对应商品详情缓存，清理热门商品列表缓存。
+- 删除商品：删除对应商品详情缓存，清理热门商品列表缓存，并从热门榜 ZSet 移除。
+- 退出登录：删除 Redis 中的登录 token。
+
 ## 登录与 RBAC
 
 登录接口：
 
 ```text
 POST /api/auth/login
+```
+
+退出登录接口：
+
+```text
+POST /api/auth/logout
 ```
 
 登录成功后返回：
@@ -164,7 +232,7 @@ POST /api/auth/login
 - 权限标识列表
 - 菜单树
 
-示例：
+请求示例：
 
 ```bash
 curl -X POST http://localhost:8080/api/auth/login ^
@@ -188,28 +256,15 @@ sys_user_role   用户角色关联表
 sys_role_menu   角色菜单关联表
 ```
 
-菜单权限示例：
-
-```text
-dashboard:view
-product:view
-product:add
-product:edit
-product:delete
-product:status
-order:view
-order:detail
-order:status
-```
-
 ## 商品接口
 
 商品接口均需要登录。
 
 ```text
 GET    /api/categories/options       商品分类选项
-GET    /api/products                 商品分页查询，支持 page、size、keyword、categoryId、status
-GET    /api/products/{id}            商品详情
+GET    /api/products                 商品分页查询
+GET    /api/products/hot             热门商品排行榜，支持 limit 参数
+GET    /api/products/{id}            商品详情，会写入商品详情缓存并增加热门榜分数
 POST   /api/products                 新增商品
 PUT    /api/products/{id}            编辑商品
 PATCH  /api/products/{id}/status     修改上下架状态，status: 1 上架，0 下架
@@ -222,7 +277,7 @@ DELETE /api/products/{id}            删除商品
 
 ```text
 GET   /api/orders/status-options     订单状态选项
-GET   /api/orders                    订单分页查询，支持 page、size、keyword、status
+GET   /api/orders                    订单分页查询
 GET   /api/orders/{id}               订单详情，包含订单明细
 PATCH /api/orders/{id}/status        修改订单状态
 ```
@@ -237,28 +292,19 @@ PATCH /api/orders/{id}/status        修改订单状态
 4 已取消
 ```
 
-允许的状态流转：
-
-```text
-待付款 -> 待发货、已取消
-待发货 -> 已发货、已取消
-已发货 -> 已完成
-已完成 -> 终态
-已取消 -> 终态
-```
-
 ## 测试流程
 
-1. 启动 MySQL 和 Redis。
-2. 创建 `shop_pilot` 数据库。
-3. 依次执行 `docs/sql/001_sys_user.sql`、`002_product_category.sql`、`003_orders.sql`、`004_rbac.sql`。
-4. 启动后端：`cd F:\Project_by_codex\shop-pilot\backend && mvn spring-boot:run`。
-5. 启动前端：`cd F:\Project_by_codex\shop-pilot\frontend && npm run dev`。
-6. 打开 `http://localhost:5173`。
-7. 使用 `admin / admin123` 登录，确认左侧菜单显示 `工作台`、`商品管理`、`订单管理`，商品页显示新增、编辑、删除、上下架按钮。
-8. 退出后使用 `operator / admin123` 登录，确认左侧菜单只显示 `工作台`、`订单管理`，不会显示商品菜单。
-9. 在订单页确认运营账号可以查看详情和变更订单状态。
-10. 清理浏览器 localStorage 后重新登录，可验证菜单树和动态路由会重新生成。
+1. 启动 MySQL。
+2. 启动 Redis，确认 `redis-cli ping` 返回 `PONG`。
+3. 创建 `shop_pilot` 数据库。
+4. 依次执行 `docs/sql/001_sys_user.sql`、`002_product_category.sql`、`003_orders.sql`、`004_rbac.sql`。
+5. 启动后端：`cd F:\Project_by_codex\shop-pilot\backend && mvn spring-boot:run`。
+6. 启动前端：`cd F:\Project_by_codex\shop-pilot\frontend && npm run dev`。
+7. 打开 `http://localhost:5173`。
+8. 使用 `admin / admin123` 登录。
+9. 进入商品详情，多刷新几次，然后查看工作台热门商品排行榜。
+10. 编辑、上下架或删除商品，确认商品详情缓存和热门榜列表缓存会被清理。
+11. 退出登录后，原 token 会从 Redis 删除，再访问受保护接口会返回未登录。
 
 ## 常用命令
 

@@ -5,6 +5,7 @@ import com.shoppilot.dto.ProductQueryRequest;
 import com.shoppilot.dto.ProductSaveRequest;
 import com.shoppilot.dto.ProductStatusRequest;
 import com.shoppilot.service.ProductService;
+import com.shoppilot.vo.HotProductVO;
 import com.shoppilot.vo.PageResult;
 import com.shoppilot.vo.ProductVO;
 import jakarta.validation.Valid;
@@ -16,7 +17,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/products")
@@ -33,9 +37,16 @@ public class ProductController {
         return ApiResponse.success(productService.page(request));
     }
 
+    @GetMapping("/hot")
+    public ApiResponse<List<HotProductVO>> hotProducts(@RequestParam(required = false) Integer limit) {
+        return ApiResponse.success(productService.listHotProducts(limit));
+    }
+
     @GetMapping("/{id}")
     public ApiResponse<ProductVO> detail(@PathVariable Long id) {
-        return ApiResponse.success(productService.getById(id));
+        ProductVO product = productService.getById(id);
+        productService.recordProductView(id);
+        return ApiResponse.success(product);
     }
 
     @PostMapping
