@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
-import { Delete, Edit, Plus, Refresh, Search } from '@element-plus/icons-vue'
+import {
+  ElMessage,
+  ElMessageBox,
+  type FormInstance,
+  type FormRules,
+  type UploadProps,
+  type UploadRequestOptions
+} from 'element-plus'
+import { Close, Delete, Edit, Plus, Refresh, Search, UploadFilled } from '@element-plus/icons-vue'
 
 import {
   createProduct,
@@ -11,6 +18,7 @@ import {
   updateProduct,
   updateProductStatus
 } from '../api/product'
+import { uploadProductImage } from '../api/upload'
 import { useAuthStore } from '../stores/auth'
 import type { CategoryOption, Product, ProductForm } from '../types/product'
 
@@ -43,7 +51,8 @@ const form = reactive<ProductForm>({
   price: 0,
   stock: 0,
   status: 0,
-  description: ''
+  description: '',
+  imageUrl: ''
 })
 
 const dialogTitle = computed(() => (editingProduct.value ? '编辑商品' : '新增商品'))
@@ -90,6 +99,7 @@ function resetForm() {
   form.stock = 0
   form.status = 0
   form.description = ''
+  form.imageUrl = ''
   formRef.value?.clearValidate()
 }
 
@@ -106,8 +116,37 @@ function openEditDialog(product: Product) {
   form.stock = product.stock
   form.status = product.status
   form.description = product.description ?? ''
+  form.imageUrl = product.imageUrl ?? ''
   formRef.value?.clearValidate()
   dialogVisible.value = true
+}
+
+const beforeImageUpload: UploadProps['beforeUpload'] = (rawFile) => {
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+  if (!allowedTypes.includes(rawFile.type)) {
+    ElMessage.error('仅支持 JPG、PNG、WEBP、GIF 图片')
+    return false
+  }
+  if (rawFile.size / 1024 / 1024 > 2) {
+    ElMessage.error('图片大小不能超过 2MB')
+    return false
+  }
+  return true
+}
+
+async function handleImageUpload(options: UploadRequestOptions) {
+  try {
+    const { data } = await uploadProductImage(options.file)
+    form.imageUrl = data.data.url
+    options.onSuccess(data.data)
+    ElMessage.success('图片上传成功')
+  } catch (error) {
+    options.onError(error as never)
+  }
+}
+
+function removeImage() {
+  form.imageUrl = ''
 }
 
 async function submitForm() {
@@ -194,6 +233,19 @@ onMounted(async () => {
     </section>
 
     <el-table v-loading="loading" :data="products" class="data-table" border>
+      <el-table-column label="图片" width="92">
+        <template #default="{ row }">
+          <el-image
+            v-if="row.imageUrl"
+            class="product-thumb"
+            fit="cover"
+            :src="row.imageUrl"
+            :preview-src-list="[row.imageUrl]"
+            preview-teleported
+          />
+          <span v-else class="table-muted">无图</span>
+        </template>
+      </el-table-column>
       <el-table-column prop="name" label="商品名称" min-width="180" />
       <el-table-column prop="categoryName" label="分类" width="140" />
       <el-table-column prop="price" label="价格" width="120">
@@ -261,6 +313,25 @@ onMounted(async () => {
           <el-radio-button :label="0">下架</el-radio-button>
         </el-radio-group>
       </el-form-item>
+      <el-form-item label="商品图片">
+        <div class="image-upload-field">
+          <el-image v-if="form.imageUrl" class="image-preview" fit="cover" :src="form.imageUrl" />
+          <el-upload
+            class="image-uploader"
+            drag
+            :show-file-list="false"
+            :before-upload="beforeImageUpload"
+            :http-request="handleImageUpload"
+          >
+            <el-icon class="upload-icon"><UploadFilled /></el-icon>
+            <div class="upload-text">点击或拖拽上传图片</div>
+            <template #tip>
+              <div class="upload-tip">支持 JPG、PNG、WEBP、GIF，最大 2MB</div>
+            </template>
+          </el-upload>
+          <el-button v-if="form.imageUrl" :icon="Close" plain type="danger" @click="removeImage">移除图片</el-button>
+        </div>
+      </el-form-item>
       <el-form-item label="商品描述" prop="description">
         <el-input v-model="form.description" maxlength="500" rows="3" show-word-limit type="textarea" />
       </el-form-item>
@@ -271,3 +342,50 @@ onMounted(async () => {
     </template>
   </el-dialog>
 </template>
+
+<style scoped>
+.product-thumb {
+  width: 52px;
+  height: 52px;
+  border-radius: 6px;
+  background: #f5f7fa;
+}
+
+.table-muted {
+  color: #909399;
+  font-size: 13px;
+}
+
+.image-upload-field {
+  display: grid;
+  gap: 12px;
+}
+
+.image-preview {
+  width: 128px;
+  height: 128px;
+  border: 1px solid #dcdfe6;
+  border-radius: 6px;
+  background: #f5f7fa;
+}
+
+.image-uploader {
+  width: 100%;
+}
+
+.upload-icon {
+  color: #909399;
+  font-size: 28px;
+}
+
+.upload-text {
+  color: #606266;
+  font-size: 14px;
+}
+
+.upload-tip {
+  color: #909399;
+  font-size: 12px;
+  line-height: 20px;
+}
+</style>

@@ -2,6 +2,8 @@ backend/target/
 backend/src/main/resources/application-local.yml
 frontend/dist/
 frontend/node_modules/
+uploads/
+backend/uploads/
 
 *.log
 *.tsbuildinfo

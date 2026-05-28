@@ -12,6 +12,7 @@ export interface Product {
   stock: number
   status: number
   description?: string
+  imageUrl?: string
   createdAt: string
   updatedAt: string
 }
@@ -23,6 +24,7 @@ export interface HotProduct {
   price: number
   stock: number
   status: number
+  imageUrl?: string
   score: number
 }
 
@@ -41,6 +43,7 @@ export interface ProductForm {
   stock: number
   status: number
   description?: string
+  imageUrl?: string
 }
 
 export interface PageResult<T> {

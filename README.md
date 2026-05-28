@@ -1,6 +1,6 @@
 # ShopPilot
 
-ShopPilot 是一个基于 Java + Spring Boot + Vue 3 的电商运营后台展示项目。当前已完成项目骨架、登录权限、RBAC 菜单权限、商品管理、订单管理和 Redis 缓存模块。
+ShopPilot 是一个基于 Java + Spring Boot + Vue 3 的电商运营后台展示项目。当前已完成项目骨架、登录权限、RBAC 菜单权限、商品管理、订单管理、Redis 缓存和文件上传模块。
 
 当前项目目录：
 
@@ -50,7 +50,9 @@ shop-pilot/
 |       |-- 001_sys_user.sql
 |       |-- 002_product_category.sql
 |       |-- 003_orders.sql
-|       `-- 004_rbac.sql
+|       |-- 004_rbac.sql
+|       `-- 005_product_image.sql
+|-- uploads/
 |-- .gitignore
 `-- README.md
 ```
@@ -147,7 +149,10 @@ docs/sql/001_sys_user.sql
 docs/sql/002_product_category.sql
 docs/sql/003_orders.sql
 docs/sql/004_rbac.sql
+docs/sql/005_product_image.sql
 ```
+
+如果是新库，`002_product_category.sql` 已包含商品图片字段；如果是已有库，请执行 `005_product_image.sql` 给 `product` 表补充 `image_url` 字段。
 
 RBAC 初始化账号：
 
@@ -183,7 +188,7 @@ npm run dev
 http://localhost:5173
 ```
 
-开发环境下，Vite 会把 `/api` 请求代理到 `http://localhost:8080`。
+开发环境下，Vite 会把 `/api` 和 `/uploads` 请求代理到 `http://localhost:8080`。
 
 ## Redis 缓存设计
 
@@ -271,6 +276,24 @@ PATCH  /api/products/{id}/status     修改上下架状态，status: 1 上架，
 DELETE /api/products/{id}            删除商品
 ```
 
+## 文件上传
+
+商品图片上传接口需要登录。
+
+```text
+POST /api/upload/product-image       商品图片上传，multipart/form-data，字段名 file
+GET  /uploads/**                     图片静态访问
+```
+
+上传限制：
+
+```text
+保存目录：F:\Project_by_codex\shop-pilot\uploads
+最大大小：2MB
+允许类型：JPG、PNG、WEBP、GIF
+返回字段：url，例如 /uploads/product/20260528/xxx.png
+```
+
 ## 订单接口
 
 订单接口均需要登录。
@@ -297,14 +320,15 @@ PATCH /api/orders/{id}/status        修改订单状态
 1. 启动 MySQL。
 2. 启动 Redis，确认 `redis-cli ping` 返回 `PONG`。
 3. 创建 `shop_pilot` 数据库。
-4. 依次执行 `docs/sql/001_sys_user.sql`、`002_product_category.sql`、`003_orders.sql`、`004_rbac.sql`。
+4. 依次执行 `docs/sql/001_sys_user.sql`、`002_product_category.sql`、`003_orders.sql`、`004_rbac.sql`、`005_product_image.sql`。
 5. 启动后端：`cd F:\Project_by_codex\shop-pilot\backend && mvn spring-boot:run`。
 6. 启动前端：`cd F:\Project_by_codex\shop-pilot\frontend && npm run dev`。
 7. 打开 `http://localhost:5173`。
 8. 使用 `admin / admin123` 登录。
 9. 进入商品详情，多刷新几次，然后查看工作台热门商品排行榜。
 10. 编辑、上下架或删除商品，确认商品详情缓存和热门榜列表缓存会被清理。
-11. 退出登录后，原 token 会从 Redis 删除，再访问受保护接口会返回未登录。
+11. 进入商品管理，新增或编辑商品，上传一张 JPG/PNG/WEBP/GIF 图片，保存后确认商品列表显示图片。
+12. 退出登录后，原 token 会从 Redis 删除，再访问受保护接口会返回未登录。
 
 ## 常用命令
 

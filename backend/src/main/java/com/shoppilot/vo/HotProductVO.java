@@ -19,5 +19,7 @@ public class HotProductVO {
 
     private Integer status;
 
+    private String imageUrl;
+
     private Double score;
 }

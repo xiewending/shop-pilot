@@ -16,6 +16,7 @@ public class ProductVO {
     private Integer stock;
     private Integer status;
     private String description;
+    private String imageUrl;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

@@ -190,6 +190,7 @@ public class ProductService {
         product.setStock(request.getStock());
         product.setStatus(request.getStatus());
         product.setDescription(StringUtils.hasText(request.getDescription()) ? request.getDescription().trim() : null);
+        product.setImageUrl(StringUtils.hasText(request.getImageUrl()) ? request.getImageUrl().trim() : null);
     }
 
     private Product requireProduct(Long id) {

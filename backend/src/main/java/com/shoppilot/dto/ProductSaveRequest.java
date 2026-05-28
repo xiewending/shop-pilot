@@ -32,4 +32,7 @@ public class ProductSaveRequest {
 
     @Size(max = 500)
     private String description;
+
+    @Size(max = 255)
+    private String imageUrl;
 }

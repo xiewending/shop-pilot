@@ -15,6 +15,10 @@ spring:
     redis:
       host: localhost
       port: 6379
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 2MB
 
 mybatis-plus:
   configuration:
@@ -24,3 +28,7 @@ shop-pilot:
   jwt:
     secret: ${SHOP_PILOT_JWT_SECRET:shop-pilot-dev-jwt-secret-key-at-least-32-bytes}
     expiration-seconds: 7200
+  upload:
+    base-dir: ../uploads
+    public-path: /uploads/
+    max-size: 2097152

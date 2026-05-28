@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS product (
     stock INT NOT NULL DEFAULT 0 COMMENT 'Stock quantity',
     status TINYINT NOT NULL DEFAULT 0 COMMENT '1 on sale, 0 off sale',
     description VARCHAR(500) NULL COMMENT 'Product description',
+    image_url VARCHAR(255) NULL COMMENT 'Product image URL',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Created time',
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Updated time',
     PRIMARY KEY (id),
